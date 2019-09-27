@@ -1,3 +1,3 @@
 # HotDate
 
-A description of this package.
+Find updated files in a Date range
