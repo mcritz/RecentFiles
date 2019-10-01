@@ -13,6 +13,8 @@ class FileUpdateNotifier {
     var fileURLs: [URL]
     var recencyMinutes: Double
     
+    private var searchedCount: Int = 0
+    
     /// Creates a new FUN instance using a search URL and the time in minutes to search
     /// - Parameter searchURL: file url to search for
     /// - Parameter minutes: time in minutes. Default is 24 hours.
@@ -28,7 +30,7 @@ class FileUpdateNotifier {
     /// - Parameter completion: handler for files found
     func recentFiles(at urls: [URL], completion: ([URL]) throws -> Void) {
         do {
-            try completion(contents(of: urls).filter{ isRecentFile(at: $0) })
+            try completion(contents(of: urls))
         } catch {
             print(error.localizedDescription)
         }
@@ -79,7 +81,8 @@ class FileUpdateNotifier {
     /// Returns files, and excludes folders
     /// - Parameter urls: file URL to search in
     private func contents(of urls: [URL]) -> [URL] {
-        print("Found \(urls.count) files")
+        searchedCount += urls.count
+        print("Searching: \(searchedCount)\r", terminator: "")
         var resultURLs = urls
         _ = urls.filter { url in
             if url.hasDirectoryPath {
@@ -91,7 +94,7 @@ class FileUpdateNotifier {
             }
             return true
         }
-        return resultURLs
+        return resultURLs.filter { isRecentFile(at: $0) }
     }
     
 }

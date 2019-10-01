@@ -42,7 +42,7 @@ func main() {
         let jsonEncodedPathStrings = try coder.encode(urls)
         do {
             let fileName = fileURL(pathComponents: arguments)
-            print("\tWriting to:\n\t\(fileName.relativeString)")
+            print("\n\tWriting \(urls.count) files to:\n\t\(fileName.relativeString)")
             try jsonEncodedPathStrings.write(to: fileName)
         } catch {
             print("\tFAILED")
