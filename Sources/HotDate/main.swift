@@ -6,6 +6,7 @@
 //  Copyright © 2019 pixel.science. All rights reserved.
 //
 import Foundation
+import Commander
 
 func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
     let formatter = DateFormatter()
@@ -25,15 +26,12 @@ func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
         .appendingPathComponent("RecentFiles-\(formattedDateString).json")
 }
 
-func main() {
+command(
+    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder")
+) { path in
     var searchPath = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
-    guard arguments.count > 0 else {
-        fatalError("Please enter a search path like `Downloads` or `Documents/Projects/Apollo`")
-    }
-    for argument in arguments {
-        searchPath.appendPathComponent(argument)
-    }
+    searchPath.appendPathComponent(path)
     print("Searching \(searchPath)")
     let fun = FileUpdateNotifier(searchURL: searchPath)
 
@@ -49,6 +47,4 @@ func main() {
         }
     })
     print("Done")
-}
-
-main()
+}.run()
