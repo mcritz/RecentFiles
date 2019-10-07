@@ -10,7 +10,7 @@ import Commander
 
 func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
     let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+    formatter.dateFormat = "yyyy-MM-dd-HH:mm:ssZZZZZ"
 
     let formattedDateString = formatter.string(from: date)
     var filename = "Recent Files "
@@ -27,13 +27,14 @@ func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
 }
 
 command(
-    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder")
-) { path in
+    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder"),
+    Option<Double>("minutes", default: 86_400, description: "age of file in minutes")
+) { path, minutes  in
     var searchPath = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
     searchPath.appendPathComponent(path)
     print("Searching \(searchPath)")
-    let fun = FileUpdateNotifier(searchURL: searchPath)
+    let fun = FileUpdateNotifier(searchURL: searchPath, within: minutes)
 
     fun.recentFiles(at: fun.fileURLs, completion: { urls in
         let coder = JSONEncoder()

@@ -18,9 +18,9 @@ class FileUpdateNotifier {
     /// Creates a new FUN instance using a search URL and the time in minutes to search
     /// - Parameter searchURL: file url to search for
     /// - Parameter minutes: time in minutes. Default is 24 hours.
-    init(searchURL: URL, within minutes: Double = 86_400) {
+    init(searchURL: URL, within minutes: Double = 1_440) {
         fileURLs = [searchURL]
-        recencyMinutes = minutes
+        recencyMinutes = minutes * 60 // seconds
     }
     
 // MARK: - Intented Entry Point
