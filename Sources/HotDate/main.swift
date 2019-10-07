@@ -27,13 +27,13 @@ func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
 }
 
 command(
-    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder"),
-    Option<Double>("minutes", default: 86_400, description: "age of file in minutes")
+    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder. Default is `Downloads`"),
+    Option<Double>("minutes", default: 1_440, description: "age of file in minutes. Default is 24 hours.")
 ) { path, minutes  in
     var searchPath = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
     searchPath.appendPathComponent(path)
-    print("Searching \(searchPath)")
+    print("Searching \(searchPath)\n for files modified in the last \(minutes) minutes")
     let fun = FileUpdateNotifier(searchURL: searchPath, within: minutes)
 
     fun.recentFiles(at: fun.fileURLs, completion: { urls in
