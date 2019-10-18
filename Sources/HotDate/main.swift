@@ -10,7 +10,7 @@ import Commander
 
 func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
     let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd-HH:mm:ssZZZZZ"
+    formatter.dateFormat = "yyyy-MM-dd-HH:mm:ss"
 
     let formattedDateString = formatter.string(from: date)
     var filename = "Recent Files "
@@ -35,9 +35,9 @@ command(
     searchPath.appendPathComponent(path)
     print("Searching \(searchPath)\n for files modified in the last \(minutes) minutes")
     let fun = FileUpdateNotifier(searchURL: searchPath, within: minutes)
-
+    let coder = JSONEncoder()
+    
     fun.recentFiles(at: fun.fileURLs, completion: { urls in
-        let coder = JSONEncoder()
         let jsonEncodedPathStrings = try coder.encode(urls)
         do {
             let fileName = fileURL(pathComponents: arguments)
@@ -46,6 +46,33 @@ command(
         } catch {
             print("\tFAILED")
         }
+        let sketchURLs = urls.filter{ url -> Bool in
+            return url.pathExtension == "sketch"
+        }
+        let group = DispatchGroup()
+        let queue = DispatchQueue(label: "science.pixel.sketchconversion")
+        for sketchFile in sketchURLs {
+            group.enter()
+            queue.async(group: nil, qos: .background, flags: [], execute: {
+                let filename = sketchFile.deletingLastPathComponent().lastPathComponent
+                print("Converting: \(filename)")
+                SketchProcessor()
+                    .convertSketch(file: sketchFile,
+                                   destinationFolder: FileManager
+                                    .default
+                                    .homeDirectoryForCurrentUser
+                                    .appendingPathComponent("Desktop"),
+                                   completion: { isSuccess in
+                                    if isSuccess {
+                                        print("Done converting \(filename)")
+                                    } else {
+                                        print("Conversion FAILED for \(filename)")
+                                    }
+                                    group.leave()
+                })
+            })
+        }
+        group.wait()
     })
     print("Done")
 }.run()
