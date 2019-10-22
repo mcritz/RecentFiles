@@ -13,7 +13,6 @@ class SketchProcessor {
     /// - Parameter url: source file URL
     /// - Parameter destinationFolder: top folder where  converted artboards are stored in a sub-folder  as PNGs.
     func convertSketch(file url: URL, destinationFolder: URL, completion: @escaping (Bool) -> ()) {
-        print("converSketch…")
         let subFolderName = url.deletingPathExtension().lastPathComponent
         let subFolderURL = destinationFolder.appendingPathComponent(subFolderName)
         do {
@@ -31,7 +30,9 @@ class SketchProcessor {
             "export",
             "artboards",
             url.path,
-            "--output=\(subFolderURL.path)"
+            "--output=\(subFolderURL.path)",
+            "--formats=png,pdf",
+            "--scales=1"
         ]
         task.terminationHandler = { completedTask -> Void in
             print("Termionated as \(completedTask.terminationStatus)")

@@ -26,16 +26,62 @@ func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
         .appendingPathComponent("RecentFiles-\(formattedDateString).json")
 }
 
+/// Converts Sketch files to PNGs.
+/// - Parameter urls: Array of Sketch file URLs
+/// - Parameter destinationPath: Output URL for converted files
+func convertSketch(urls: [URL], destinationPath: URL, group: DispatchGroup) throws {
+    var isDir: ObjCBool = true
+    if !FileManager.default
+        .fileExists(atPath: destinationPath.path,
+                                       isDirectory: &isDir) {
+        do {
+            try FileManager.default
+                .createDirectory(at: destinationPath,
+                                    withIntermediateDirectories: true,
+                                    attributes: [:])
+        } catch {
+            fatalError("Could not create directory at:\n\t\(destinationPath.path)")
+        }
+    }
+    let queue = DispatchQueue.global(qos: .background)
+    for sketchFile in urls {
+        group.enter()
+        queue.async(group: group, qos: .background, flags: [], execute: {
+            let filename = sketchFile.deletingLastPathComponent().lastPathComponent
+            print("Converting: \(filename)")
+            SketchProcessor()
+                .convertSketch(file: sketchFile,
+                               destinationFolder: destinationPath,
+                               completion: { isSuccess in
+                                if isSuccess {
+                                    print("Done converting \(filename)")
+                                } else {
+                                    print("Conversion FAILED for \(filename)")
+                                }
+                                group.leave()
+            })
+        })
+    }
+}
+
 command(
-    Option<String>("path", default: "Downloads", description: "path to search, relative to user’s home folder. Default is `Downloads`"),
-    Option<Double>("minutes", default: 1_440, description: "age of file in minutes. Default is 24 hours.")
-) { path, minutes  in
+    Option<String>("path",
+                   default: "Downloads",
+                   description: "path to search, relative to user’s home folder. Default is `Downloads`"),
+    Option<Double>("minutes",
+                   default: 1_440,
+                   description: "age of file in minutes. Default is 24 hours."),
+    Option<String>("convert-sketch",
+                    default: "",
+                    description: "output directory for converted Sketch files. Not adding a valid path will skip conversion.")
+) { path, minutes, destinationPathString in
     var searchPath = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
     searchPath.appendPathComponent(path)
     print("Searching \(searchPath)\n for files modified in the last \(minutes) minutes")
     let fun = FileUpdateNotifier(searchURL: searchPath, within: minutes)
     let coder = JSONEncoder()
+    let group = DispatchGroup()
     
     fun.recentFiles(at: fun.fileURLs, completion: { urls in
         let jsonEncodedPathStrings = try coder.encode(urls)
@@ -46,33 +92,21 @@ command(
         } catch {
             print("\tFAILED")
         }
-        let sketchURLs = urls.filter{ url -> Bool in
-            return url.pathExtension == "sketch"
+        if destinationPathString.count > 0 {
+            print("\n\nConverting Sketch Files\n\n")
+            let conversionDestinationURL = FileManager.default
+                .homeDirectoryForCurrentUser
+                .appendingPathComponent(destinationPathString)
+            try convertSketch(urls: urls.filter{ url -> Bool in
+                url.pathExtension == "sketch"
+            },
+              destinationPath: conversionDestinationURL,
+              group: group
+            )
+            group.wait()
+        } else {
+            print("Not converting Sketch files.\n Conversion happens at by adding `--convert-sketch \"$HOME/some/directory/\"`")
         }
-        let group = DispatchGroup()
-        let queue = DispatchQueue(label: "science.pixel.sketchconversion")
-        for sketchFile in sketchURLs {
-            group.enter()
-            queue.async(group: nil, qos: .background, flags: [], execute: {
-                let filename = sketchFile.deletingLastPathComponent().lastPathComponent
-                print("Converting: \(filename)")
-                SketchProcessor()
-                    .convertSketch(file: sketchFile,
-                                   destinationFolder: FileManager
-                                    .default
-                                    .homeDirectoryForCurrentUser
-                                    .appendingPathComponent("Desktop"),
-                                   completion: { isSuccess in
-                                    if isSuccess {
-                                        print("Done converting \(filename)")
-                                    } else {
-                                        print("Conversion FAILED for \(filename)")
-                                    }
-                                    group.leave()
-                })
-            })
-        }
-        group.wait()
     })
-    print("Done")
+    print("Completely Done")
 }.run()
