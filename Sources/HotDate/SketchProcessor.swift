@@ -31,7 +31,7 @@ class SketchProcessor {
             "artboards",
             url.path,
             "--output=\(subFolderURL.path)",
-            "--formats=png,pdf",
+            "--formats=pdf",
             "--scales=1"
         ]
         task.terminationHandler = { completedTask -> Void in

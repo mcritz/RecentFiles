@@ -43,7 +43,7 @@ func convertSketch(urls: [URL], destinationPath: URL, group: DispatchGroup) thro
             fatalError("Could not create directory at:\n\t\(destinationPath.path)")
         }
     }
-    let queue = DispatchQueue.global(qos: .background)
+    let queue = DispatchQueue.global(qos: .utility)
     for sketchFile in urls {
         group.enter()
         queue.async(group: group, qos: .background, flags: [], execute: {
@@ -93,16 +93,50 @@ command(
             print("\tFAILED")
         }
         if destinationPathString.count > 0 {
-            print("\n\nConverting Sketch Files\n\n")
             let conversionDestinationURL = FileManager.default
                 .homeDirectoryForCurrentUser
                 .appendingPathComponent(destinationPathString)
-            try convertSketch(urls: urls.filter{ url -> Bool in
-                url.pathExtension == "sketch"
+            
+            print("\n\nConverting Sketch Files\n\n")
+            try convertSketch(urls: urls.filter {
+                $0.pathExtension == "sketch"
             },
               destinationPath: conversionDestinationURL,
               group: group
             )
+            
+            let staticURLs = urls.filter {
+                $0.pathExtension != "sketch"
+            }
+            
+            for staticURL in staticURLs {
+                guard FileManager.default
+                    .fileExists(atPath: staticURL.path) else {
+                        print("File no longer exists\t\n\(staticURL.lastPathComponent)")
+                        return
+                }
+                let fileAttributes = try FileManager.default
+                    .attributesOfItem(atPath: staticURL.path) as NSDictionary
+                guard fileAttributes.fileSize() < 250_000_000 else {
+                    print("File is larger than 250MB\t\n\(staticURL.lastPathComponent)")
+                    return
+                }
+                
+                let staticFileQueue = DispatchQueue.global(qos: .utility)
+                group.enter()
+                staticFileQueue.async {
+                    do {
+                        try FileManager.default
+                        .copyItem(at: staticURL,
+                                  to: conversionDestinationURL
+                                    .appendingPathComponent(staticURL
+                                        .lastPathComponent))
+                    } catch {
+                        print("Could not copy\n\t\(staticURL.path)")
+                    }
+                    group.leave()
+                }
+            }
             group.wait()
         } else {
             print("Not converting Sketch files.\n Conversion happens at by adding `--convert-sketch \"$HOME/some/directory/\"`")
