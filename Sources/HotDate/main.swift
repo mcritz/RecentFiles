@@ -113,19 +113,20 @@ command(
                 guard FileManager.default
                     .fileExists(atPath: staticURL.path) else {
                         print("File no longer exists\t\n\(staticURL.lastPathComponent)")
-                        return
+                        break
                 }
                 let fileAttributes = try FileManager.default
                     .attributesOfItem(atPath: staticURL.path) as NSDictionary
                 guard fileAttributes.fileSize() < 250_000_000 else {
-                    print("File is larger than 250MB\t\n\(staticURL.lastPathComponent)")
-                    return
+                    print("Skipping: file is larger than 250MB\t\n\(staticURL.lastPathComponent)")
+                    break
                 }
                 
                 let staticFileQueue = DispatchQueue.global(qos: .utility)
                 group.enter()
                 staticFileQueue.async {
                     do {
+                        print("Copying \(staticURL.lastPathComponent)")
                         try FileManager.default
                         .copyItem(at: staticURL,
                                   to: conversionDestinationURL
