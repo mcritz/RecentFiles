@@ -75,11 +75,16 @@ command(
                     default: "",
                     description: "output directory for converted Sketch files. Not adding a valid path will skip conversion.")
 ) { path, minutes, destinationPathString in
-    var searchPath = FileManager.default.homeDirectoryForCurrentUser
+    var searchURL = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
-    searchPath.appendPathComponent(path)
-    print("Searching \(searchPath)\n for files modified in the last \(minutes) minutes")
-    let fun = FileUpdateNotifier(searchURL: searchPath, within: minutes)
+    searchURL.appendPathComponent(path)
+    var isValidSearchDirectory: ObjCBool = true
+    guard FileManager.default.fileExists(atPath: searchURL.path, isDirectory: &isValidSearchDirectory),
+        isValidSearchDirectory.boolValue else {
+            fatalError("Not a something that can be searched:\n\t\(searchURL.path)")
+    }
+    print("Searching \(searchURL)\n for files modified in the last \(minutes) minutes")
+    let fun = FileUpdateNotifier(searchURL: searchURL, within: minutes)
     let coder = JSONEncoder()
     let group = DispatchGroup()
     
@@ -110,9 +115,11 @@ command(
             }
             
             for staticURL in staticURLs {
+                var isDirectory: ObjCBool = false
                 guard FileManager.default
-                    .fileExists(atPath: staticURL.path) else {
-                        print("File no longer exists\t\n\(staticURL.lastPathComponent)")
+                    .fileExists(atPath: staticURL.path, isDirectory: &isDirectory),
+                    !isDirectory.boolValue else {
+                        print("Won’t copy directory or unreadable file\t\n\(staticURL.path)")
                         break
                 }
                 let fileAttributes = try FileManager.default
