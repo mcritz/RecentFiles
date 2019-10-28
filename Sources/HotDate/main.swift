@@ -114,19 +114,19 @@ command(
                 $0.pathExtension != "sketch"
             }
             
-            for staticURL in staticURLs {
+            handleStaticURLs: for staticURL in staticURLs {
                 var isDirectory: ObjCBool = false
                 guard FileManager.default
                     .fileExists(atPath: staticURL.path, isDirectory: &isDirectory),
                     !isDirectory.boolValue else {
                         print("Won’t copy directory or unreadable file\t\n\(staticURL.path)")
-                        break
+                        continue handleStaticURLs
                 }
                 let fileAttributes = try FileManager.default
                     .attributesOfItem(atPath: staticURL.path) as NSDictionary
                 guard fileAttributes.fileSize() < 250_000_000 else {
                     print("Skipping: file is larger than 250MB\t\n\(staticURL.lastPathComponent)")
-                    break
+                    continue handleStaticURLs
                 }
                 
                 let staticFileQueue = DispatchQueue.global(qos: .utility)
