@@ -11,13 +11,17 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/kylef/Commander", from: "0.9.1"),
+        .package(url: "https://github.com/vapor/console-kit", from: "4.0.0-beta.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends
         .target(
             name: "HotDate",
-            dependencies: ["Commander"]),
+            dependencies: [
+                "Commander",
+                "ConsoleKit"
+        ]),
         .testTarget(
             name: "HotDateTests",
             dependencies: ["HotDate"]),

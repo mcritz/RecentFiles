@@ -7,8 +7,11 @@
 //
 
 import Foundation
+import ConsoleKit
 
 class FileUpdateNotifier {
+    
+    let term: Terminal
     
     var fileURLs: [URL]
     var recencyMinutes: Double
@@ -21,6 +24,7 @@ class FileUpdateNotifier {
     init(searchURL: URL, within minutes: Double = 1_440) {
         fileURLs = [searchURL]
         recencyMinutes = minutes * 60 // seconds
+        self.term = Terminal()
     }
     
 // MARK: - Intented Entry Point
@@ -29,11 +33,15 @@ class FileUpdateNotifier {
     /// - Parameter urls: local file URL to search
     /// - Parameter completion: handler for files found
     func recentFiles(at urls: [URL], completion: ([URL]) throws -> Void) {
+        let activityBar = term.loadingBar(title: "Searching")
         do {
+            activityBar.start()
             try completion(contents(of: urls))
         } catch {
-            print(error.localizedDescription)
+            term.error(error.localizedDescription, newLine: true)
+            activityBar.fail()
         }
+        activityBar.succeed()
     }
 
     // MARK: - Ineternals
@@ -70,9 +78,8 @@ class FileUpdateNotifier {
         }
         let maybeCreationDate = fileAttributes[FileAttributeKey.creationDate] as? Date
         guard let creationDate: Date = maybeCreationDate else { return false }
-        let interval = creationDate.timeIntervalSince(Date())
         if creationDate.timeIntervalSince(Date()) > -(recencyMinutes) {
-            print("\(String(describing: url.lastPathComponent)) : \(interval)")
+            term.info("Matched:\(String(describing: url.lastPathComponent))", newLine: true)
             return true
         }
         return false
@@ -82,7 +89,6 @@ class FileUpdateNotifier {
     /// - Parameter urls: file URL to search in
     private func contents(of urls: [URL]) -> [URL] {
         searchedCount += urls.count
-        print("Searching: \(searchedCount)\r", terminator: "")
         var resultURLs = urls
         _ = urls.filter { url in
             if url.hasDirectoryPath {
