@@ -8,11 +8,15 @@
 import Foundation
 
 class SketchProcessor {
+    enum SketchExportDeliverable: String {
+        case pages = "pages",
+        artboards = "artboards"
+    }
     // TODO: Not die silently
     /// Creates a task to convert Sketch file
     /// - Parameter url: source file URL
     /// - Parameter destinationFolder: top folder where  converted artboards are stored in a sub-folder  as PNGs.
-    func convertSketch(file url: URL, destinationFolder: URL, completion: @escaping (Bool) -> ()) {
+    func convertSketch(file url: URL, deliverables: SketchExportDeliverable = .artboards, destinationFolder: URL, completion: @escaping (Bool) -> ()) {
         let subFolderName = url.deletingPathExtension().lastPathComponent
         let subFolderURL = destinationFolder.appendingPathComponent(subFolderName)
         do {
@@ -28,7 +32,7 @@ class SketchProcessor {
         task.launchPath = "/Applications/Sketch.app/Contents/Resources/sketchtool/bin/sketchtool"
         task.arguments = [
             "export",
-            "artboards",
+            deliverables.rawValue,
             url.path,
             "--output=\(subFolderURL.path)",
             "--formats=pdf",
