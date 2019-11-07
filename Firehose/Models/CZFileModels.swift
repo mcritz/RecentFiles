@@ -22,7 +22,7 @@ struct CZFile: CZFileRepresentable, Codable {
     var modificationDate: Date
     var childCount = 0
     
-    init(with url: URL, modified: Date) {
+    init(with url: URL, modified: Date = Date()) {
         sourceURL = url
         fileName = url.lastPathComponent
         title = sourceURL.deletingPathExtension().lastPathComponent
