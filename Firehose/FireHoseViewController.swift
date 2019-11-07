@@ -8,29 +8,43 @@
 import AppKit
 import PDFKit
 
-
-// MARK: - Toolbar
+// MARK: - Window & Toolbar
 class FireHoseWindowController: NSWindowController {
     @IBOutlet weak var refreshToolbarItem: NSToolbarItem!
     @IBOutlet weak var firehoseToolbar: NSToolbar!
     @IBAction func refreshAction(_ sender: Any) {
-        if let fhvc = viewController as? FireHoseViewController {
-            fhvc.loadRecents()
-        }
-        print("refresh: \(String(describing: viewController))")
     }
-    var viewController: NSViewController {
-        get {
-            return self.window!.contentViewController!
+}
+
+// MARK: - SplitView
+class FirehoseSplitViewController: NSSplitViewController, FirehoseSourceViewDelegate {
+    func handle(selected url: URL) {
+        print(url.path)
+        guard let fhDetailViewController = splitViewItems[1].viewController as? FireHoseViewController else { return }
+        if let pdfDoc = PDFDocument(url: url) {
+            fhDetailViewController.pdfView.document = pdfDoc
+            fhDetailViewController.pdfView.autoScales = true
+        }
+    }
+    override func viewWillAppear() {
+        if let fhSourceViewController = splitViewItems[0].viewController as? FirehoseSourceView {
+            fhSourceViewController.delegate = self
         }
     }
 }
 
-// MARK: - ViewController
+// MARK: - SourceView
+protocol FirehoseSourceViewDelegate {
+    func handle(selected url: URL)
+}
 
-class FireHoseViewController: NSViewController {
+class FirehoseSourceView: NSViewController, NSOutlineViewDelegate, NSOutlineViewDataSource {
+    
     @IBOutlet weak var outlineView: NSOutlineView!
-    @IBOutlet weak var pdfView: PDFView!
+    
+    var delegate: FirehoseSourceViewDelegate?
+    let searchURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+    let fun = FileUpdateNotifier(searchURL: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop"))
     
     var outlineItems: [CZFileRepresentable]? {
         didSet {
@@ -40,29 +54,14 @@ class FireHoseViewController: NSViewController {
     }
     
     override func viewDidLoad() {
-        super.viewDidLoad()
-        if let url = Bundle.main.url(forResource: "TileComponents", withExtension: "pdf") {
-            if let doc = PDFDocument(url: url) {
-                pdfView.document = doc
-                pdfView.autoScales = true
-            }
-        }
-        loadRecents()
         outlineView.delegate = self
+        outlineView.dataSource = self
+        loadRecents()
     }
-
-    override var representedObject: Any? {
-        didSet {
-        // Update the view, if already loaded.
-        }
-    }
-}
-
-extension FireHoseViewController: NSOutlineViewDataSource {
+    
     func loadRecents() {
-        let searchURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
-        let fun = FileUpdateNotifier(searchURL: searchURL)
-        fun.recentFiles(at: [searchURL], completion: { urls in
+        fun.recentFiles(at: [searchURL],
+                        completion: { urls in
             print("done \(urls.count)")
             outlineItems = urls.map({ url -> CZFileRepresentable in
                 return CZFile(with: url)
@@ -70,22 +69,28 @@ extension FireHoseViewController: NSOutlineViewDataSource {
         })
     }
     
-    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+    func outlineView(_ outlineView: NSOutlineView,
+                     numberOfChildrenOfItem item: Any?) -> Int {
         outlineItems?.count ?? 1
     }
     
-    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+    func outlineView(_ outlineView: NSOutlineView,
+                     child index: Int,
+                     ofItem item: Any?) -> Any {
         outlineItems?[index] ?? "Whoops"
     }
     
-    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+    func outlineView(_ outlineView: NSOutlineView,
+                     isItemExpandable item: Any) -> Bool {
         if let fileItem = item as? CZFileRepresentable {
             return fileItem.childCount > 0
         }
         return false
     }
     
-    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+    func outlineView(_ outlineView: NSOutlineView,
+                     viewFor tableColumn: NSTableColumn?,
+                     item: Any) -> NSView? {
         var view: NSTableCellView?
         if let fileItem = item as? CZFile {
             view = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"), owner: self) as? NSTableCellView
@@ -98,12 +103,22 @@ extension FireHoseViewController: NSOutlineViewDataSource {
         guard let outlineView = notification.object as? NSOutlineView else { return }
         let index = outlineView.selectedRow
         if let file = outlineItems?[index] {
-            guard let pdfdoc = PDFDocument(url: file.sourceURL) else { return }
-            self.pdfView.document = pdfdoc
-            self.pdfView.autoScales = true
+            delegate?.handle(selected: file.sourceURL)
         }
     }
+
 }
 
-extension FireHoseViewController: NSOutlineViewDelegate {
+// MARK: - ViewController
+class FireHoseViewController: NSViewController {
+    @IBOutlet weak var pdfView: PDFView!
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        if let url = Bundle.main.url(forResource: "TileComponents", withExtension: "pdf") {
+            if let doc = PDFDocument(url: url) {
+                pdfView.document = doc
+                pdfView.autoScales = true
+            }
+        }
+    }
 }
