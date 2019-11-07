@@ -11,13 +11,16 @@
         <scene sceneID="rmd-5v-xyB">
             <objects>
                 <viewController storyboardIdentifier="FirehoseSourceView" id="2k1-W7-g1c" userLabel="FirehoseSourceView" customClass="FirehoseSourceView" customModule="Firehose" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" misplaced="YES" id="80g-S1-49t">
+                    <view key="view" id="80g-S1-49t">
                         <rect key="frame" x="0.0" y="0.0" width="173" height="289"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <visualEffectView blendingMode="behindWindow" material="appearanceBased" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="yt3-lw-Pde">
                                 <rect key="frame" x="0.0" y="1" width="173" height="290"/>
                                 <subviews>
+                                    <progressIndicator hidden="YES" wantsLayer="YES" misplaced="YES" maxValue="100" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="BcZ-bs-gMF">
+                                        <rect key="frame" x="78" y="137" width="16" height="16"/>
+                                    </progressIndicator>
                                     <scrollView misplaced="YES" borderType="line" autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QTL-pY-hqg">
                                         <rect key="frame" x="0.0" y="-1" width="175" height="291"/>
                                         <clipView key="contentView" drawsBackground="NO" copiesOnScroll="NO" id="Z6K-wO-GJF">
@@ -121,6 +124,8 @@
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="QTL-pY-hqg" firstAttribute="top" secondItem="yt3-lw-Pde" secondAttribute="top" id="C1F-Yv-9IR"/>
+                                    <constraint firstItem="BcZ-bs-gMF" firstAttribute="centerY" secondItem="yt3-lw-Pde" secondAttribute="centerY" id="Dfh-WN-JGB"/>
+                                    <constraint firstItem="BcZ-bs-gMF" firstAttribute="centerX" secondItem="yt3-lw-Pde" secondAttribute="centerX" id="Ldz-KV-Kmd"/>
                                     <constraint firstAttribute="bottom" secondItem="QTL-pY-hqg" secondAttribute="bottom" id="O5h-Ax-M6O"/>
                                     <constraint firstItem="QTL-pY-hqg" firstAttribute="leading" secondItem="yt3-lw-Pde" secondAttribute="leading" id="VOf-GW-p4u"/>
                                     <constraint firstAttribute="trailing" secondItem="QTL-pY-hqg" secondAttribute="trailing" constant="-2" id="jtw-RB-yzV"/>
@@ -136,6 +141,7 @@
                     </view>
                     <connections>
                         <outlet property="outlineView" destination="Ywm-MJ-OgC" id="JXP-k3-9KN"/>
+                        <outlet property="progressIndicator" destination="BcZ-bs-gMF" id="Xmn-4Y-bxT"/>
                     </connections>
                 </viewController>
                 <customObject id="Mdl-2m-cBh" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
@@ -820,7 +826,7 @@
         <!--Window Controller-->
         <scene sceneID="R2V-B0-nI4">
             <objects>
-                <windowController id="B8D-0N-5wS" sceneMemberID="viewController">
+                <windowController id="B8D-0N-5wS" customClass="FireHoseWindowController" customModule="Firehose" customModuleProvider="target" sceneMemberID="viewController">
                     <window key="window" title="Firehose" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" titleVisibility="hidden" id="IQv-IB-iLA">
                         <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
                         <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
@@ -831,6 +837,9 @@
                                 <toolbarItem implicitItemIdentifier="A164EE75-0FB8-4AD0-9219-7D4AB644E76E" label="Refresh" paletteLabel="Refresh" tag="-1" image="NSRefreshFreestandingTemplate" id="RxM-0e-p0c">
                                     <size key="minSize" width="14" height="14"/>
                                     <size key="maxSize" width="14" height="14"/>
+                                    <connections>
+                                        <action selector="refreshAction:" target="B8D-0N-5wS" id="OkO-h2-cq6"/>
+                                    </connections>
                                 </toolbarItem>
                                 <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="zQ6-SF-re5"/>
                                 <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="kax-UR-sSA"/>
@@ -845,6 +854,7 @@
                         </connections>
                     </window>
                     <connections>
+                        <outlet property="refreshToolbarItem" destination="RxM-0e-p0c" id="Fzi-3h-oqW"/>
                         <segue destination="wvX-Dr-dKr" kind="relationship" relationship="window.shadowedContentViewController" id="si8-XY-ueQ"/>
                     </connections>
                 </windowController>

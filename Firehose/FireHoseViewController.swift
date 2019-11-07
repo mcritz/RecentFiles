@@ -11,15 +11,22 @@ import PDFKit
 // MARK: - Window & Toolbar
 class FireHoseWindowController: NSWindowController {
     @IBOutlet weak var refreshToolbarItem: NSToolbarItem!
-    @IBOutlet weak var firehoseToolbar: NSToolbar!
     @IBAction func refreshAction(_ sender: Any) {
+        print("refresh")
+        if let fhsvc = self.contentViewController as? FirehoseSplitViewController {
+            if let fhsourceview = fhsvc.splitViewItems[0].viewController as? FirehoseSourceView {
+                fhsourceview.loadRecents()
+            }
+        }
+    }
+    override func windowWillLoad() {
+        
     }
 }
 
 // MARK: - SplitView
 class FirehoseSplitViewController: NSSplitViewController, FirehoseSourceViewDelegate {
     func handle(selected url: URL) {
-        print(url.path)
         guard let fhDetailViewController = splitViewItems[1].viewController as? FireHoseViewController else { return }
         if let pdfDoc = PDFDocument(url: url) {
             fhDetailViewController.pdfView.document = pdfDoc
@@ -41,9 +48,10 @@ protocol FirehoseSourceViewDelegate {
 class FirehoseSourceView: NSViewController, NSOutlineViewDelegate, NSOutlineViewDataSource {
     
     @IBOutlet weak var outlineView: NSOutlineView!
+    @IBOutlet weak var progressIndicator: NSProgressIndicator!
     
     var delegate: FirehoseSourceViewDelegate?
-    let searchURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+    var searchURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
     let fun = FileUpdateNotifier(searchURL: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop"))
     
     var outlineItems: [CZFileRepresentable]? {
@@ -60,15 +68,26 @@ class FirehoseSourceView: NSViewController, NSOutlineViewDelegate, NSOutlineView
     }
     
     func loadRecents() {
-        fun.recentFiles(at: [searchURL],
-                        completion: { urls in
-            print("done \(urls.count)")
-            outlineItems = urls.map({ url -> CZFileRepresentable in
-                return CZFile(with: url)
+        progressIndicator.isHidden = false
+        progressIndicator.startAnimation(nil)
+        outlineView.isHidden = true
+        let queue = DispatchQueue.global(qos: .userInitiated)
+        queue.async {
+            self.fun.recentFiles(at: [self.searchURL], completion: { urls in
+                print("done \(urls.count)")
+                DispatchQueue.main.async {
+                    self.progressIndicator.stopAnimation(nil)
+                    self.progressIndicator.isHidden = true
+                    self.outlineView.isHidden = false
+                    self.outlineItems = urls.map({ url -> CZFileRepresentable in
+                        return CZFile(with: url)
+                    })
+                }
             })
-        })
+        }
     }
     
+    // MARK: - OutlineViewDataSource
     func outlineView(_ outlineView: NSOutlineView,
                      numberOfChildrenOfItem item: Any?) -> Int {
         outlineItems?.count ?? 1
@@ -93,7 +112,8 @@ class FirehoseSourceView: NSViewController, NSOutlineViewDelegate, NSOutlineView
                      item: Any) -> NSView? {
         var view: NSTableCellView?
         if let fileItem = item as? CZFile {
-            view = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"), owner: self) as? NSTableCellView
+            view = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"),
+                                        owner: self) as? NSTableCellView
             view?.textField?.stringValue = fileItem.title
         }
         return view
