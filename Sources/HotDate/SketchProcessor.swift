@@ -46,4 +46,42 @@ class SketchProcessor {
         print("conversion stopped")
         completion(task.terminationStatus == 0) // Terminates as complete
     }
+    
+    /// Converts Sketch files to PNGs.
+    /// - Parameter urls: Array of Sketch file URLs
+    /// - Parameter destinationPath: Output URL for converted files
+    func convertSketch(urls: [URL], destinationPath: URL, group: DispatchGroup) throws {
+        var isDir: ObjCBool = true
+        if !FileManager.default
+            .fileExists(atPath: destinationPath.path,
+                                           isDirectory: &isDir) {
+            do {
+                try FileManager.default
+                    .createDirectory(at: destinationPath,
+                                        withIntermediateDirectories: true,
+                                        attributes: [:])
+            } catch {
+                fatalError("Could not create directory at:\n\t\(destinationPath.path)")
+            }
+        }
+        let queue = DispatchQueue.global(qos: .utility)
+        for sketchFile in urls {
+            group.enter()
+            queue.async(group: group, qos: .background, flags: [], execute: {
+                let filename = sketchFile.deletingLastPathComponent().lastPathComponent
+                print("Converting: \(filename)")
+                self.convertSketch(file: sketchFile,
+                               destinationFolder: destinationPath,
+                               completion: { isSuccess in
+                                if isSuccess {
+                                    print("Done converting \(filename)")
+                                } else {
+                                    print("\n×××\n\nConversion FAILED for \(filename)\n\n×××\n")
+                                }
+                                group.leave()
+                })
+            })
+        }
+    }
+    
 }

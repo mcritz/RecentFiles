@@ -26,44 +26,6 @@ func fileURL(pathComponents: [String], date: Date = Date()) -> URL {
         .appendingPathComponent("RecentFiles-\(formattedDateString).json")
 }
 
-/// Converts Sketch files to PNGs.
-/// - Parameter urls: Array of Sketch file URLs
-/// - Parameter destinationPath: Output URL for converted files
-func convertSketch(urls: [URL], destinationPath: URL, group: DispatchGroup) throws {
-    var isDir: ObjCBool = true
-    if !FileManager.default
-        .fileExists(atPath: destinationPath.path,
-                                       isDirectory: &isDir) {
-        do {
-            try FileManager.default
-                .createDirectory(at: destinationPath,
-                                    withIntermediateDirectories: true,
-                                    attributes: [:])
-        } catch {
-            fatalError("Could not create directory at:\n\t\(destinationPath.path)")
-        }
-    }
-    let queue = DispatchQueue.global(qos: .utility)
-    for sketchFile in urls {
-        group.enter()
-        queue.async(group: group, qos: .background, flags: [], execute: {
-            let filename = sketchFile.deletingLastPathComponent().lastPathComponent
-            print("Converting: \(filename)")
-            SketchProcessor()
-                .convertSketch(file: sketchFile,
-                               destinationFolder: destinationPath,
-                               completion: { isSuccess in
-                                if isSuccess {
-                                    print("Done converting \(filename)")
-                                } else {
-                                    print("Conversion FAILED for \(filename)")
-                                }
-                                group.leave()
-            })
-        })
-    }
-}
-
 command(
     Option<String>("path",
                    default: "Downloads",
@@ -77,6 +39,7 @@ command(
 ) { path, minutes, destinationPathString in
     var searchURL = FileManager.default.homeDirectoryForCurrentUser
     let arguments = Array<String>(CommandLine.arguments.dropFirst())
+    let sketchProcessor = SketchProcessor()
     searchURL.appendPathComponent(path)
     var isValidSearchDirectory: ObjCBool = true
     guard FileManager.default.fileExists(atPath: searchURL.path, isDirectory: &isValidSearchDirectory),
@@ -103,7 +66,7 @@ command(
                 .appendingPathComponent(destinationPathString)
             
             print("\n\nConverting Sketch Files\n\n")
-            try convertSketch(urls: urls.filter {
+            try sketchProcessor.convertSketch(urls: urls.filter {
                 $0.pathExtension == "sketch"
             },
               destinationPath: conversionDestinationURL,
